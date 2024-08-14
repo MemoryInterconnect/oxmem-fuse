@@ -35,7 +35,7 @@ static struct stat root_st;
 
 static struct oxmem_info_struct oxmem_info;
 
-static struct ox_request ox_request_list[Ox_REQUEST_LIST_LENGTH];
+static struct ox_request ox_request_list[OX_REQUEST_LIST_LENGTH];
 
 #define OPTION(t, p)                           \
 	    { t, offsetof(struct options, p), 1 }
@@ -222,8 +222,6 @@ static int copy_recv_data_to_buf(char * target_buf, struct ox_request * ox_req){
 	return 1 << tl_msg_ack.size;
 }
 
-#define READ_WRITE_UNIT 1024	// max read/write data size for a request
-
 static int
 oxmem_read(const char *path, char *buf, size_t size, off_t offset,
 	   struct fuse_file_info *fi)
@@ -237,7 +235,7 @@ oxmem_read(const char *path, char *buf, size_t size, off_t offset,
     struct tl_msg_header_chan_AD tl_msg_ack;
     uint64_t be64_temp;
     int i;
-    int idx[1024] = { -1, };
+    int idx[4096] = { -1, };
     int temp_idx;
     int j = 0;
     char * temp_target_buf;
@@ -352,7 +350,7 @@ oxmem_write(const char *path, const char *buf, size_t size, off_t offset,
     struct tl_msg_header_chan_AD tl_msg_ack;
     uint64_t be64_temp;
     int i, j = 0;
-    int idx[1024] = { -1, };
+    int idx[4096] = { -1, };
     int temp_idx;
 
     PRINT_LINE1("WRITE %s - offset %lx size %ld\n", path, offset, size);
@@ -465,9 +463,9 @@ static int init_ox_request_list(void)
     int i;
 
     bzero(ox_request_list,
-	  sizeof(struct ox_request) * Ox_REQUEST_LIST_LENGTH);
+	  sizeof(struct ox_request) * OX_REQUEST_LIST_LENGTH);
 
-    for (i = 0; i < Ox_REQUEST_LIST_LENGTH; i++) {
+    for (i = 0; i < OX_REQUEST_LIST_LENGTH; i++) {
 	ox_request_list[i].connection_id = -1;
 	ox_request_list[i].seq_num = -1;
 	ox_request_list[i].target_buf = NULL;
@@ -498,7 +496,7 @@ static int init_ox_request_queues(void)
 	initQueue(&q_responded);
 
 	//Put all ox_request entries into q_free
-	for(i=0; i<Ox_REQUEST_LIST_LENGTH; i++) {
+	for(i=0; i<OX_REQUEST_LIST_LENGTH; i++) {
 		enqueue(&q_free, i);
 	}
 

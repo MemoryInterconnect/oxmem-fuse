@@ -63,7 +63,7 @@ if (1) {
      
      for (i=0; i<size/sizeof(int); i++) { 
 	     if ( write_buffer[i] != read_buffer[i] ) { 
-		     printf("%d write=%x read=%x\n", i, write_buffer[i], read_buffer[i]); 
+		     printf("%ld write=%x read=%x\n", i*sizeof(int), write_buffer[i], read_buffer[i]); 
 		     break; 
 	     } 
      }
