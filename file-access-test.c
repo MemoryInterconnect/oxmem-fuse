@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 #include <string.h>
 
-#define FILE_PATH "om/oxmem"
+#define FILE_PATH "/home/swsok/oxmem-fuse/om/oxmem"
 
 // #define SIZE (4*1024)
 
@@ -37,12 +37,13 @@ int main(int argc, char **argv)
 	return 0;
     }
 
-/*    mmap_addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    mmap_addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+//    mmap_addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
     if (mmap_addr == MAP_FAILED) {
 	printf("mmap error = %d (%s)\n", errno, strerror(errno));
 	goto close_file;
     }
-*/
+
     
      write_buffer = malloc(size); 
      read_buffer = malloc(size);
@@ -77,9 +78,9 @@ if (1) {
      free(write_buffer); 
      free(read_buffer); 
      
-/*    if (mmap_addr != MAP_FAILED)
+    if (mmap_addr != MAP_FAILED)
 	munmap(mmap_addr, 4096);
-*/
+
 close_file:
     close(fd);
 

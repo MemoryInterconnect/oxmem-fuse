@@ -133,6 +133,7 @@ static int oxmem_open(const char *path, struct fuse_file_info *fi)
 	return -ENOENT;
 
     // if direct_io == 0, mmap MAP_SHARED is possible
+//    fi->direct_io = FUSE_DIRECT_IO;
     fi->direct_io = FUSE_DIRECT_IO;
 
     // if connection is not made, send Open_Connection packet
