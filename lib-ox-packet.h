@@ -180,7 +180,7 @@ struct ox_request {
 #define OX_REQUEST_LIST_LENGTH 20
 #define READ_WRITE_UNIT 1024	//max read/write data size for a request
 
-#if 0
+#if 1
 #define PRINT_LINE(fmt, args...) printf("%s %d - " fmt, __FUNCTION__, __LINE__, ##args)
 #else
 #define PRINT_LINE(fmt, args...)

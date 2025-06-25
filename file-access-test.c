@@ -21,6 +21,7 @@ int main(int argc, char **argv)
     int nread, nwrite, i;
     int size;
     int *mmap_addr;
+    struct stat stbuf;
 
     if (argc < 2) {
 	printf("Usage: %s [n] (n = write, read and compare n kb data)\n",
@@ -30,6 +31,9 @@ int main(int argc, char **argv)
 
     size = atoi(argv[1]) * 1024;
 
+    stat(FILE_PATH, &stbuf);
+    printf("FILE_PATH=%s stbuf.st_dev = %d, st_ino = %d st_mode=0x%x st_uid=%d st_gid=%d st_size=%ld st_atime=%s\n", FILE_PATH,
+		    stbuf.st_dev, stbuf.st_ino, stbuf.st_mode, stbuf.st_uid, stbuf.st_gid, stbuf.st_size, ctime(&stbuf.st_atime));
     fd = open(FILE_PATH, O_RDWR);
 
     if (fd < 0) {
@@ -37,7 +41,7 @@ int main(int argc, char **argv)
 	return 0;
     }
 
-    mmap_addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    mmap_addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
 //    mmap_addr = mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
     if (mmap_addr == MAP_FAILED) {
 	printf("mmap error = %d (%s)\n", errno, strerror(errno));

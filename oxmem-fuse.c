@@ -76,9 +76,9 @@ static int oxmem_getattr(const char *path, struct stat *stbuf)
 
     memset(stbuf, 0, sizeof(struct stat));
     if (strcmp(path, "/") == 0) {
-	stbuf->st_uid = getuid();
-	stbuf->st_gid = getgid();
-	stbuf->st_mode = S_IFDIR | 0755;
+	stbuf->st_uid = st->st_uid;
+	stbuf->st_gid = st->st_gid;
+	stbuf->st_mode = root_st.st_mode;
 	stbuf->st_nlink = 2;
 	memcpy(&(stbuf->st_atim), &root_st.st_atim,
 	       sizeof(struct timespec));;
@@ -88,8 +88,8 @@ static int oxmem_getattr(const char *path, struct stat *stbuf)
 	       sizeof(struct timespec));;
 	stbuf->st_size = 4096;
     } else if (strcmp(path, oxmem_path) == 0) {
-	stbuf->st_uid = getuid();
-	stbuf->st_gid = getgid();
+	stbuf->st_uid = st->st_uid;
+	stbuf->st_gid = st->st_gid;
 	stbuf->st_mode = S_IFREG | 0666;
 	stbuf->st_nlink = 1;
 	memcpy(&(stbuf->st_atim), &st->st_atim, sizeof(struct timespec));;
@@ -133,14 +133,14 @@ static int oxmem_open(const char *path, struct fuse_file_info *fi)
 	return -ENOENT;
 
     // if direct_io == 0, mmap MAP_SHARED is possible
-//    fi->direct_io = FUSE_DIRECT_IO;
     fi->direct_io = FUSE_DIRECT_IO;
+//    fi->direct_io = 0;
 
     // if connection is not made, send Open_Connection packet
     if (oxmem_info.connection_id >= 0) {
 	return 0;
     }
-
+#if 0
     //for channel A
     oxmem_info.connection_id =
 	make_open_connection_packet(oxmem_info.sockfd, oxmem_info.netdev,
@@ -168,6 +168,7 @@ static int oxmem_open(const char *path, struct fuse_file_info *fi)
     free_ox_request(idx);
 
     PRINT_LINE("6\n");
+#endif
     return ret;
 }
 
@@ -185,6 +186,7 @@ static int oxmem_release(const char *path, struct fuse_file_info *fi)
 	return -ENXIO;
     }
 
+#if 0
     make_close_connection_packet(oxmem_info.connection_id, &send_ox_p);
     idx = post_ox_request(oxmem_info.connection_id, &send_ox_p, 0, NULL);
 
@@ -198,6 +200,7 @@ static int oxmem_release(const char *path, struct fuse_file_info *fi)
     oxmem_info.connection_id = -1;
 
     PRINT_LINE("7\n");
+#endif
     return 0;
 }
 
@@ -427,8 +430,6 @@ oxmem_write(const char *path, const char *buf, size_t size, off_t offset,
     return size;
 }
 
-
-
 static struct fuse_operations oxmem_oper = {
     .getattr = oxmem_getattr,
     .readdir = oxmem_readdir,
@@ -539,6 +540,9 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_REALTIME, &root_st.st_mtim);
     clock_gettime(CLOCK_REALTIME, &root_st.st_ctim);
 
+    oxmem_info.st.st_uid = getuid();
+    oxmem_info.st.st_gid = getgid();
+
     // configure oxmem_info
     strcpy(oxmem_info.netdev, options.netdev);
     oxmem_info.netdev_id = if_nametoindex(options.netdev);
@@ -629,7 +633,57 @@ int main(int argc, char *argv[])
 	return -1;
     }
 
+#if 1
+    struct ox_packet_struct send_ox_p;
+    int idx;
+    //for channel A
+    oxmem_info.connection_id =
+	make_open_connection_packet(oxmem_info.sockfd, oxmem_info.netdev,
+				    oxmem_info.mac_addr, &send_ox_p);
+
+    idx = post_ox_request(oxmem_info.connection_id, &send_ox_p, 0, NULL);
+
+    PRINT_LINE("OPEN oxmem_info.connection_id=%d idx = %d\n",
+	      oxmem_info.connection_id, idx);
+
+    // wait response and process it.
+    sem_wait(&ox_request_list[idx].sem_wait);
+    free_ox_request(idx);
+
+    //for channel D
+    send_ox_p.tloe_hdr.msg_type = NORMAL;
+    send_ox_p.tloe_hdr.chan = CHANNEL_D;
+
+    idx = post_ox_request(oxmem_info.connection_id, &send_ox_p, 0, NULL);
+
+    PRINT_LINE("OPEN oxmem_info.connection_id=%d idx = %d\n",
+	      oxmem_info.connection_id, idx);
+
+    sem_wait(&ox_request_list[idx].sem_wait);
+    free_ox_request(idx);
+
+    PRINT_LINE("6\n");
+#endif
+
+
     ret = fuse_main(args.argc, args.argv, &oxmem_oper);
+
+#if 1
+    make_close_connection_packet(oxmem_info.connection_id, &send_ox_p);
+    idx = post_ox_request(oxmem_info.connection_id, &send_ox_p, 0, NULL);
+
+    PRINT_LINE("RELEASE idx = %d\n", idx);
+
+    // wait response and process it.
+    sem_wait(&ox_request_list[idx].sem_wait);
+    free_ox_request(idx);
+
+    delete_connection(oxmem_info.connection_id);
+    oxmem_info.connection_id = -1;
+
+    PRINT_LINE("7\n");
+
+#endif
 
     fuse_opt_free_args(&args);
 
